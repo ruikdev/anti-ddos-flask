@@ -1,6 +1,6 @@
 import threading
 import time
-from flask import request, abort
+from flask import Flask, request, abort
 
 class SimpleCache:
     def __init__(self):
@@ -40,7 +40,7 @@ class AntiDDoS:
 
         # Check if IP is blocked
         if self.cache.get(f"blocked:{client_ip}"):
-            abort(429, "Trop de requêtes. Veuillez réessayer plus tard.")
+            abort(429, "Too many requests. Please try again later.")
 
         # Get request history
         requests = self.cache.get(client_ip) or []
@@ -49,9 +49,22 @@ class AntiDDoS:
         # Check request count
         if len(requests) >= self.max_requests:
             self.cache.set(f"blocked:{client_ip}", True, timeout=self.block_time)
-            abort(429, "Trop de requêtes. Veuillez réessayer plus tard.")
+            abort(429, "Too many requests. Please try again later.")
 
         # Add new request
         requests.append(current_time)
         self.cache.set(client_ip, requests, timeout=self.time_window)
         return None
+
+# Flask App Setup
+app = Flask(__name__)
+
+# Initialize AntiDDoS
+anti_ddos = AntiDDoS(app=app)
+
+@app.route('/')
+def index():
+    return "Welcome! Your requests are being monitored."
+
+if __name__ == '__main__':
+    app.run(debug=True)
